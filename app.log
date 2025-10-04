@@ -1,0 +1,99 @@
+2025-10-04 12:46:30,849 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 12:46:30,850 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 12:46:31,215 - backend.services.spotify_service - DEBUG - Received 0 playlists
+2025-10-04 12:46:31,216 - __main__ - ERROR - No playlists found on Spotify.
+2025-10-04 14:44:01,782 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 14:44:01,783 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 14:44:01,981 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 14:44:32,690 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 14:44:32,691 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:44:32,856 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:44:32,856 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 14:45:10,876 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 14:45:10,877 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 14:45:11,113 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 14:45:15,240 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 14:45:15,241 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:45:15,481 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:45:15,482 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 14:52:29,891 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 14:52:29,892 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 14:52:30,137 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 14:52:33,283 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 14:52:33,284 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:52:33,499 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:52:33,500 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 14:56:14,434 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 14:56:14,436 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 14:56:14,855 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 14:56:16,868 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 14:56:16,869 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:56:17,127 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:56:17,128 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 14:59:00,361 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 14:59:00,367 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 14:59:00,547 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 14:59:03,340 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 14:59:03,341 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:59:03,583 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 14:59:03,584 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:05:06,291 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:05:06,292 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:05:06,570 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:05:08,058 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:05:08,059 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:05:08,291 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:05:08,292 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:08:16,933 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:08:16,935 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:08:17,323 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:08:19,102 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:08:19,102 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:08:19,463 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:08:19,464 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:08:41,907 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:08:41,907 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:08:42,181 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:08:44,425 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:08:44,425 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:08:44,658 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:08:44,659 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:11:09,045 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:11:09,046 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:11:09,225 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:11:10,602 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:11:10,603 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:11:10,755 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:11:10,756 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:13:02,983 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:13:02,985 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:13:03,209 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:13:04,632 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:13:04,633 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:13:04,977 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:13:04,978 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:28:47,227 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:28:47,227 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:28:47,428 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:28:48,705 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:28:48,705 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:28:48,848 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:28:48,848 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:29:11,897 - backend.services.youtube_service - INFO - Creating new YouTube playlist: Converted - My playlist#1
+2025-10-04 15:29:12,648 - backend.services.youtube_service - ERROR - Failed to create playlist: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/playlists?part=snippet%2Cstatus&alt=json returned "YouTube Data API v3 has not been used in project 275708648581 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtube.googleapis.com/overview?project=275708648581 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.". Details: "[{'message': 'YouTube Data API v3 has not been used in project 275708648581 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtube.googleapis.com/overview?project=275708648581 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.', 'domain': 'usageLimits', 'reason': 'accessNotConfigured', 'extendedHelp': 'https://console.developers.google.com'}]">
+2025-10-04 15:29:12,649 - __main__ - ERROR - Could not create YouTube playlist.
+2025-10-04 15:31:25,087 - __main__ - INFO - Fetching Spotify playlists...
+2025-10-04 15:31:25,088 - backend.services.spotify_service - INFO - Fetching user playlists from Spotify...
+2025-10-04 15:31:25,341 - backend.services.spotify_service - DEBUG - Received 1 playlists
+2025-10-04 15:31:27,826 - __main__ - INFO - Selected Spotify playlist: My playlist#1
+2025-10-04 15:31:27,826 - backend.services.spotify_service - INFO - Fetching tracks for playlist: 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:31:28,016 - backend.services.spotify_service - DEBUG - Fetched 1 tracks from playlist 03IuEE9rddqtMIINiQs9Z1
+2025-10-04 15:31:28,017 - __main__ - INFO - Fetched 1 tracks from Spotify
+2025-10-04 15:31:28,028 - backend.services.youtube_service - INFO - Creating new YouTube playlist: Converted - My playlist#1
+2025-10-04 15:31:29,012 - backend.services.youtube_service - DEBUG - Created playlist ID: PLdydBfVeaGAaQxEqoug6Ipur51IXz76Lj
+2025-10-04 15:31:29,012 - backend.services.youtube_service - INFO - Searching YouTube for: Happy - From "Despicable Me 2" Pharrell Williams
+2025-10-04 15:31:29,461 - backend.services.youtube_service - DEBUG - Found video ID: C7dPqrmDWxs
+2025-10-04 15:31:29,462 - backend.services.youtube_service - INFO - Adding video C7dPqrmDWxs to playlist PLdydBfVeaGAaQxEqoug6Ipur51IXz76Lj
+2025-10-04 15:31:29,872 - backend.services.youtube_service - DEBUG - Added video: {'kind': 'youtube#playlistItem', 'etag': 'q-G4Trh2G_271_Eg7FQPaeqKO8E', 'id': 'UExkeWRCZlZlYUdBYVF4RXFvdWc2SXB1cjUxSVh6NzZMai41NkI0NEY2RDEwNTU3Q0M2', 'snippet': {'publishedAt': '2025-10-04T19:31:29Z', 'channelId': 'UC4y2DnxkoJWE7ZQ05MHd8Tw', 'title': 'Pharrell Williams - Happy (from Despicable Me 2) [Ballroom Version]', 'description': '“Happy” single available now: http://smarturl.it/happypharrell\n\nPharrell Williams  Dear  G  I  R  L  Tour Dates\n\nSeptember 9: Phones4U Arena, Manchester\nSeptember 12: Copenhagen Forum, Denmark\nSeptember 13: tockholm Globe, Sweden\nSeptember 14: Oslo Spectrum, Norway\nSeptember 16: Berlin Max Schmeling Halle, Germany\nSeptember 17: Prague O2, Czech Republic\nSeptember 18: Vienna Marx Halle, Austria\nSeptember 20: Milan Forum, Italy\nSeptember 21: Zurich Hallenstadion, Switzerland\nSeptember 23: Amsterdam Ziggo Dome, The Netherlands\nSeptember 24: Antwerp Sportpaleis, Belgium\nSeptember 26: Frankfurt Festhalle, Germany\nSeptember 27: Dusseldorf ISS Dome, Germany\nSeptember 28: Stuttgart Schleyerhalle, Germany\nOctober 1: Barcelona Palau St Jordi, Spain\nOctober 3: Lisbon Meo Arena, Portugal\nOctober 4: Madrid Palacio de Deportes Communidad, Spain\nOctober 6: Toulouse Zenith, France\nOctober 7: Nantes Zenith, France\nOctober 9: The O2, London\n\nMusic video by Pharrell Williams performing Happy (from Despicable Me 2). (C) 2013 Columbia Records, a Division of Sony Music Entertainment', 'thumbnails': {'default': {'url': 'https://i.ytimg.com/vi/C7dPqrmDWxs/default.jpg', 'width': 120, 'height': 90}, 'medium': {'url': 'https://i.ytimg.com/vi/C7dPqrmDWxs/mqdefault.jpg', 'width': 320, 'height': 180}, 'high': {'url': 'https://i.ytimg.com/vi/C7dPqrmDWxs/hqdefault.jpg', 'width': 480, 'height': 360}, 'standard': {'url': 'https://i.ytimg.com/vi/C7dPqrmDWxs/sddefault.jpg', 'width': 640, 'height': 480}, 'maxres': {'url': 'https://i.ytimg.com/vi/C7dPqrmDWxs/maxresdefault.jpg', 'width': 1280, 'height': 720}}, 'channelTitle': 'Louis Cao', 'playlistId': 'PLdydBfVeaGAaQxEqoug6Ipur51IXz76Lj', 'position': 0, 'resourceId': {'kind': 'youtube#video', 'videoId': 'C7dPqrmDWxs'}, 'videoOwnerChannelTitle': 'PharrellWilliamsVEVO', 'videoOwnerChannelId': 'UCtQMmwBJGvINGU0lZ_GrZKQ'}}
+2025-10-04 15:31:29,873 - __main__ - INFO - Added Happy - From "Despicable Me 2" by Pharrell Williams
+2025-10-04 15:31:29,874 - __main__ - INFO - ✅ Playlist transfer complete!

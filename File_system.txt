@@ -1,0 +1,23 @@
+playlist-converter/
+│── README.md               # Project description & setup guide
+│── requirements.txt        # Python dependencies
+│── .env                    # API keys & secrets (not committed to git)
+│── main.py                 # Entry point (CLI or script runner)
+
+├── auth/
+│   ├── spotify_auth.py     # Handles Spotify OAuth login, token refresh
+│   └── youtube_auth.py     # Handles YouTube OAuth or ytmusicapi login
+
+├── services/
+│   ├── spotify_service.py  # Functions to fetch playlist & track data from Spotify
+│   ├── youtube_service.py  # Functions to search/add tracks and create playlist on YouTube
+│   └── match_service.py    # Logic to match Spotify track → YouTube video
+
+├── utils/
+│   ├── config.py           # Loads .env variables
+│   └── logger.py           # Logging (optional)
+
+├── tests/
+│   ├── test_spotify.py     # Unit tests for Spotify API calls
+│   ├── test_youtube.py     # Unit tests for YouTube API calls
+│   └── test_match.py       # Unit tests for fuzzy matching

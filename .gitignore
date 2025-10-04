@@ -1,0 +1,17 @@
+# Ignore environment variables
+.env
+client_secret.json
+token.pickle
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore VS Code settings
+.vscode/
+
+# Ignore virtual environments
+venv/
