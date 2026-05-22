@@ -6,6 +6,7 @@
     "dev": "npm --prefix frontend start",
     "start": "npm --prefix frontend start",
     "build": "npm --prefix frontend run build",
+    "build:extension": "npm --prefix frontend run build:extension",
     "test": "npm --prefix frontend test"
   }
 }

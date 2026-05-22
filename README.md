@@ -1,129 +1,62 @@
-1. Define Requirements
+# Playlist Converter
 
-Input: Spotify playlist URL (or ID).
+Convert playlists between Spotify and YouTube/YouTube Music with a Flask API and a React UI.
 
-Output: YouTube Music playlist with the same/similar tracks.
+The React UI can run in two modes:
 
-Consider:
+- **Website** at `http://localhost:3000`.
+- **Browser extension panel** injected into `https://open.spotify.com` and `https://music.youtube.com`, similar to the Simplify sidebar/panel pattern.
 
-Authentication: You’ll need OAuth for both Spotify and YouTube.
+## Run locally
 
-Matching: Some songs may not exist under the exact same name/artist. You’ll need fuzzy matching.
+Install dependencies:
 
-Errors: Handle missing tracks gracefully (log them).
+```bash
+npm install
+pip install -r requirements.txt
+```
 
-2. Set Up APIs
-Spotify
+Start the Flask API:
 
-Register an app on Spotify Developer Dashboard
-.
+```bash
+python backend/main.py
+```
 
-Get Client ID and Client Secret.
+Start the website UI:
 
-Use the Spotify Web API:
+```bash
+npm start
+```
 
-Endpoint: GET /playlists/{playlist_id}/tracks → retrieves tracks.
+## Build the Spotify / YouTube Music browser extension
 
-Data you’ll need: track name, artist(s), album (optionally duration to disambiguate).
+Build the unpacked extension:
 
-YouTube Music
+```bash
+npm run build:extension
+```
 
-YouTube Music doesn’t have a fully official API, but there are 2 options:
+Then load `frontend/build-extension` in Chrome or Edge:
 
-YouTube Data API v3 (official) – lets you search for videos and create playlists.
+1. Open `chrome://extensions` or `edge://extensions`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select `frontend/build-extension`.
+5. Open Spotify Web Player or YouTube Music and use the **Convert playlists** floating button.
 
-Register on Google Cloud Console
-.
+Clicking the extension toolbar icon also toggles the in-page panel when you are on Spotify or YouTube Music.
 
-Enable YouTube Data API v3.
+## OAuth notes for extension mode
 
-Use endpoints:
+The injected panel still talks to the local Flask API at `http://localhost:8888` by default. Keep the API running while using the extension.
 
-youtube.search.list (search for the track).
+Spotify login cannot safely happen inside an injected iframe, so the extension opens Spotify OAuth in a normal browser tab, watches for the configured redirect URL, exchanges the code with Flask, stores the result in extension storage, and closes the login tab.
 
-youtube.playlists.insert (create playlist).
+For local development, configure Spotify with one of the repo's usual redirect URLs, for example:
 
-youtube.playlistItems.insert (add songs).
+- `http://localhost:3000/`
+- `http://localhost:8888/`
 
-ytmusicapi (unofficial Python library) – easier for YouTube Music specifically, no OAuth dance but requires extracting authentication headers from your browser.
+Set `SPOTIFY_REDIRECT_URI` in your environment to match the exact redirect URI registered in the Spotify Developer Dashboard.
 
-3. Authentication
-
-Spotify → OAuth 2.0 flow.
-
-YouTube → OAuth 2.0 (Google API).
-
-Store tokens securely (refresh when expired).
-
-4. Extract Playlist Data (Spotify)
-
-Call Spotify API to get all track info (name, artists, album).
-
-Build a list of track metadata.
-
-Example:
-
-{
-  "name": "Blinding Lights",
-  "artist": "The Weeknd",
-  "album": "After Hours",
-  "duration_ms": 200040
-}
-
-5. Search & Match on YouTube
-
-For each track, construct a search query like "Blinding Lights The Weeknd".
-
-Use YouTube search API to get results.
-
-Select best match (based on title similarity, artist, duration).
-
-6. Create Playlist on YouTube
-
-Use API to create a new playlist (youtube.playlists.insert).
-
-Add matched videos one by one (youtube.playlistItems.insert).
-
-7. Handle Edge Cases
-
-Songs not found → skip + log.
-
-Duplicates → check before inserting.
-
-Regional differences → consider fuzzy matching on results.
-
-8. Build User Interface
-
-CLI tool (Python/Node.js script).
-
-Or Web app (React + Flask/Express backend).
-
-Input: Spotify playlist URL.
-
-Output: YouTube Music playlist link.
-
-9. Testing
-
-Try with different playlists (small, large, obscure).
-
-Benchmark matching accuracy.
-
-Measure API quota usage (Google API has daily limits).
-
-10. Deployment
-
-Host backend on a server (Heroku, Vercel, etc.).
-
-Secure tokens.
-
-(Optional) Add user authentication so anyone can log in with their Spotify/Google accounts and convert their playlists.
-
-👉 So in summary:
-
-Get Spotify playlist tracks.
-
-Search them on YouTube.
-
-Create YouTube playlist & add songs.
-
-Handle auth, errors, and user interface.
+YouTube / YouTube Music auth continues to be handled by the Flask API configuration (`backend/token.pickle`, `YTMUSIC_BROWSER_HEADERS_JSON`, or the existing ytmusicapi OAuth setup).

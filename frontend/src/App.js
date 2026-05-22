@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   startSpotifyAuth,
   handleSpotifyCallback,
+  getStoredExtensionSpotifyAuth,
+  isRunningAsExtension,
   convertPlaylist,
   fetchYoutubePlaylists,
   fetchYtmusicPlaylists,
@@ -21,6 +23,10 @@ const DIRECTION = {
 };
 
 function App() {
+  const [isExtensionPanel] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("extension") === "1" || isRunningAsExtension();
+  });
   const [direction, setDirection] = useState(DIRECTION.SPOTIFY_TO_YOUTUBE);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
   /** Integer from `/api/spotify/callback` when `user-library-read` is granted; else null. */
@@ -94,6 +100,33 @@ function App() {
         })
         .finally(() => setLoading(false));
     }
+  }, []);
+
+  useEffect(() => {
+    if (!isRunningAsExtension()) {
+      return;
+    }
+    let cancelled = false;
+    getStoredExtensionSpotifyAuth()
+      .then((data) => {
+        if (cancelled || !data?.playlists) {
+          return;
+        }
+        setSpotifyPlaylists(data.playlists || []);
+        setSpotifyLikedTotal(
+          typeof data.liked_songs_total === "number"
+            ? data.liked_songs_total
+            : null
+        );
+        setAuthDone(true);
+        setMessage("Connected to Spotify.");
+      })
+      .catch(() => {
+        // No stored extension auth yet; the login button will start the tab-based flow.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -189,9 +222,34 @@ function App() {
     };
   }, [authDone, direction, ytPlaylistReloadKey]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     sessionStorage.setItem("pc_direction", direction);
-    startSpotifyAuth();
+    if (!isRunningAsExtension()) {
+      startSpotifyAuth();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage("Opening Spotify login in a new tab…");
+      const data = await startSpotifyAuth();
+      setSpotifyPlaylists(data.playlists || []);
+      setSpotifyLikedTotal(
+        typeof data.liked_songs_total === "number"
+          ? data.liked_songs_total
+          : null
+      );
+      setAuthDone(true);
+      setMessage("Logged in with Spotify successfully.");
+    } catch (err) {
+      setMessage(
+        err?.message
+          ? `Spotify login failed: ${err.message}`
+          : "Failed to complete Spotify login."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveYtmusicBrowserHeaders = async () => {
@@ -382,18 +440,27 @@ function App() {
     }
   };
 
+  const shellStyle = {
+    fontFamily: "Arial, sans-serif",
+    padding: isExtensionPanel ? "16px" : "2rem",
+    maxWidth: isExtensionPanel ? "100%" : "700px",
+    margin: "0 auto",
+    boxSizing: "border-box",
+  };
+
   return (
-    <div
-      style={{
-        fontFamily: "Arial, sans-serif",
-        padding: "2rem",
-        maxWidth: "700px",
-        margin: "0 auto",
-      }}
-    >
-      <h1>Playlist converter</h1>
+    <div style={shellStyle}>
+      <h1 style={{ marginTop: isExtensionPanel ? 0 : undefined }}>
+        Playlist converter
+      </h1>
       <p style={{ color: "#444", marginTop: 0 }}>
         Spotify ↔ YouTube Music (via YouTube playlists and Spotify search).
+        {isExtensionPanel && (
+          <>
+            {" "}
+            <strong>Extension panel</strong>
+          </>
+        )}
       </p>
 
       <div
