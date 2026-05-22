@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Playlist Converter for Spotify & YouTube Music",
+  "short_name": "Playlist Converter",
+  "version": "0.1.0",
+  "description": "Open the playlist converter as an in-page panel on Spotify and YouTube Music.",
+  "action": {
+    "default_title": "Toggle Playlist Converter"
+  },
+  "background": {
+    "service_worker": "extension/background.js"
+  },
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "http://localhost:8888/*",
+    "http://127.0.0.1:8888/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "https://accounts.spotify.com/*",
+    "https://open.spotify.com/*",
+    "https://music.youtube.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://open.spotify.com/*", "https://music.youtube.com/*"],
+      "js": ["extension/contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html", "asset-manifest.json", "favicon.ico", "static/*"],
+      "matches": ["https://open.spotify.com/*", "https://music.youtube.com/*"]
+    }
+  ]
+}

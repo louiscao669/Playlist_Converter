@@ -1,4 +1,57 @@
-const API_BASE = "http://localhost:8888";
+/* global chrome */
+
+export const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8888";
+
+function isExtensionRuntime() {
+  return (
+    typeof chrome !== "undefined" &&
+    Boolean(chrome.runtime?.id) &&
+    typeof chrome.runtime.sendMessage === "function"
+  );
+}
+
+function rememberSpotifyAuth(data) {
+  if (data?.access_token) {
+    localStorage.setItem("spotify_token", data.access_token);
+  }
+}
+
+function sendExtensionMessage(type, payload = {}) {
+  return new Promise((resolve, reject) => {
+    if (!isExtensionRuntime()) {
+      reject(new Error("Extension runtime is not available."));
+      return;
+    }
+
+    chrome.runtime.sendMessage({ type, payload }, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      if (runtimeError) {
+        reject(new Error(runtimeError.message));
+        return;
+      }
+      if (!response?.ok) {
+        reject(new Error(response?.error || "Extension request failed."));
+        return;
+      }
+      resolve(response.data);
+    });
+  });
+}
+
+export function isRunningAsExtension() {
+  return isExtensionRuntime();
+}
+
+export async function getStoredExtensionSpotifyAuth() {
+  if (!isExtensionRuntime()) {
+    return null;
+  }
+  const data = await sendExtensionMessage("PC_GET_SPOTIFY_AUTH");
+  if (data) {
+    rememberSpotifyAuth(data);
+  }
+  return data || null;
+}
 
 /** Must match `SPOTIFY_LIKED_SONGS_PLAYLIST_ID` in backend `spotify_service.py`. */
 export const SPOTIFY_LIKED_SONGS_PLAYLIST_ID = "__spotify_liked_songs__";
@@ -82,9 +135,16 @@ async function consumeNdjsonStream(res, onProgress) {
 }
 
 export async function startSpotifyAuth() {
+  if (isExtensionRuntime()) {
+    const data = await sendExtensionMessage("PC_START_SPOTIFY_AUTH", { apiBase: API_BASE });
+    rememberSpotifyAuth(data);
+    return data;
+  }
+
   const res = await fetch(`${API_BASE}/api/spotify/auth`);
   const data = await res.json();
   window.location.href = data.auth_url;
+  return null;
 }
 
 export async function handleSpotifyCallback(authCode) {
@@ -105,9 +165,7 @@ export async function handleSpotifyCallback(authCode) {
   if (!res.ok) {
     throw new Error(data.error || `Spotify login failed (${res.status})`);
   }
-  if (data.access_token) {
-    localStorage.setItem("spotify_token", data.access_token);
-  }
+  rememberSpotifyAuth(data);
   return data;
 }
 
