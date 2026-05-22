@@ -1,0 +1,11 @@
+{
+  "name": "playlist-converter",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm install --prefix frontend",
+    "dev": "npm --prefix frontend start",
+    "start": "npm --prefix frontend start",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend test"
+  }
+}

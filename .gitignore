@@ -2,6 +2,11 @@
 .env
 client_secret.json
 token.pickle
+spotify_tokens.json
+oauth.json
+browser_headers.json
+backend/.headers_import_once.txt
+backend/data/yt_search_cache.json
 
 # Ignore Python cache files
 __pycache__/
