@@ -59,4 +59,9 @@ For local development, configure Spotify with one of the repo's usual redirect U
 
 Set `SPOTIFY_REDIRECT_URI` in your environment to match the exact redirect URI registered in the Spotify Developer Dashboard.
 
-YouTube / YouTube Music auth continues to be handled by the Flask API configuration (`backend/token.pickle`, `YTMUSIC_BROWSER_HEADERS_JSON`, or the existing ytmusicapi OAuth setup).
+Google / YouTube auth now follows the same browser redirect pattern:
+
+- Add `http://localhost:3000/youtube-callback` to your Google Cloud OAuth client redirect URIs.
+- Set `YOUTUBE_REDIRECT_URI=http://localhost:3000/youtube-callback` if you need a custom value.
+
+The app stores Google credentials in `backend/token.pickle` and refreshes them when Google provides a refresh token. YouTube Music browser-header renewal is still available from the panel for accounts where ytmusicapi needs browser cookies.

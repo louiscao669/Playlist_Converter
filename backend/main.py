@@ -23,7 +23,11 @@ from backend.services.ytmusic_service import (
     browser_headers_json_write_path,
     normalize_browser_headers_dict,
 )
-from backend.auth.youtube_auth import get_youtube_credentials
+from backend.auth.youtube_auth import (
+    YouTubeAuthRequired,
+    get_youtube_credentials,
+)
+import backend.auth.youtube_auth as youtube_auth
 import backend.auth.spotify_auth as spotify_auth
 from backend.utils import config
 from backend.utils.logger import get_logger
@@ -227,7 +231,21 @@ def _youtube_add_events(data):
         yield {"type": "error", "error": "playlist_id required", "status": 400}
         return
 
-    creds = get_youtube_credentials()
+    try:
+        creds = get_youtube_credentials()
+    except YouTubeAuthRequired:
+        try:
+            auth_url = youtube_auth.get_auth_url()
+        except Exception:
+            auth_url = None
+        yield {
+            "type": "error",
+            "error": "YouTube not connected",
+            "status": 401,
+            "auth_required": True,
+            "auth_url": auth_url,
+        }
+        return
     youtube = YouTubeService(creds)
     n = len(tracks)
     added = []
@@ -275,6 +293,31 @@ def spotify_oauth_forward_callback():
     return redirect(f"{base}/?{q}" if q else f"{base}/")
 
 
+@app.route("/youtube-callback")
+def youtube_oauth_forward_callback():
+    q = request.query_string.decode()
+    base = config.FRONTEND_URL
+    return redirect(f"{base}/youtube-callback?{q}" if q else f"{base}/")
+
+
+def _youtube_auth_required_response(status: int = 401):
+    try:
+        auth_url = youtube_auth.get_auth_url()
+    except Exception as e:
+        logger.warning("Could not build YouTube auth URL: %s", e)
+        return jsonify({"error": "YouTube auth is not configured"}), 500
+    return (
+        jsonify(
+            {
+                "error": "YouTube not connected",
+                "auth_required": True,
+                "auth_url": auth_url,
+            }
+        ),
+        status,
+    )
+
+
 # --- Spotify Auth ---
 @app.route("/api/spotify/auth", methods=["GET"])
 def spotify_auth_url():
@@ -300,6 +343,42 @@ def spotify_oauth_settings():
     )
 
 
+# --- YouTube / Google Auth ---
+@app.route("/api/youtube/auth", methods=["GET"])
+def youtube_auth_url():
+    try:
+        return jsonify({"auth_url": youtube_auth.get_auth_url()})
+    except Exception as e:
+        logger.warning("YouTube auth URL failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/youtube/oauth-settings", methods=["GET"])
+def youtube_oauth_settings():
+    return jsonify(
+        {
+            "youtube_redirect_uri": config.YOUTUBE_REDIRECT_URI
+            or f"{config.FRONTEND_URL}/youtube-callback",
+            "frontend_url": config.FRONTEND_URL,
+            "note": "Add youtube_redirect_uri exactly in Google Cloud OAuth settings.",
+        }
+    )
+
+
+@app.route("/api/youtube/callback", methods=["POST"])
+def youtube_callback():
+    code = (request.json or {}).get("code")
+    try:
+        youtube_auth.request_tokens(code)
+    except ValueError as e:
+        logger.warning("YouTube callback failed: %s", e)
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.exception("YouTube callback failed")
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"ok": True})
+
+
 # --- Spotify Callback ---
 @app.route("/api/spotify/callback", methods=["POST"])
 def spotify_callback():
@@ -319,6 +398,28 @@ def spotify_callback():
         liked_songs_total = spotify.get_saved_tracks_total()
     except Exception as e:
         logger.info("Liked songs count unavailable (re-auth may be needed): %s", e)
+    return jsonify(
+        {
+            "playlists": playlists,
+            "access_token": access_token,
+            "liked_songs_total": liked_songs_total,
+        }
+    )
+
+
+@app.route("/api/spotify/session", methods=["GET"])
+def spotify_session():
+    try:
+        access_token = spotify_auth.get_access_token()
+    except ValueError:
+        return jsonify({"error": "Spotify not connected"}), 401
+    spotify = SpotifyService(access_token)
+    playlists = spotify.get_user_playlists()
+    liked_songs_total = None
+    try:
+        liked_songs_total = spotify.get_saved_tracks_total()
+    except Exception as e:
+        logger.info("Liked songs count unavailable: %s", e)
     return jsonify(
         {
             "playlists": playlists,
@@ -373,7 +474,10 @@ def get_spotify_tracks():
 # --- YouTube: list / create playlists ---
 @app.route("/api/youtube/playlists", methods=["GET", "POST"])
 def youtube_playlists():
-    creds = get_youtube_credentials()
+    try:
+        creds = get_youtube_credentials()
+    except YouTubeAuthRequired:
+        return _youtube_auth_required_response()
     youtube = YouTubeService(creds)
 
     if request.method == "GET":
@@ -390,7 +494,10 @@ def youtube_playlists():
 
 @app.route("/api/youtube/tracks", methods=["POST"])
 def get_youtube_playlist_tracks():
-    creds = get_youtube_credentials()
+    try:
+        creds = get_youtube_credentials()
+    except YouTubeAuthRequired:
+        return _youtube_auth_required_response()
     youtube = YouTubeService(creds)
     data = request.json or {}
     playlist_id = data["playlist_id"]
@@ -460,6 +567,8 @@ def ytmusic_playlists():
                 "warning": warning,
             }
         )
+    except YouTubeAuthRequired:
+        return _youtube_auth_required_response()
     except Exception as fe:
         logger.exception("YouTube playlist fallback failed")
         return jsonify({"error": f"{ytm_err}; fallback: {fe}"}), 502
@@ -662,6 +771,8 @@ def ytmusic_playlist_tracks():
                 ),
             }
         )
+    except YouTubeAuthRequired:
+        return _youtube_auth_required_response()
     except Exception as fe:
         logger.exception("YouTube tracks fallback failed")
         return jsonify({"error": f"{ytm_err}; fallback: {fe}"}), 502
