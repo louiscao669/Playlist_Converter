@@ -14,6 +14,7 @@ import {
   convertYoutubePlaylistToSpotify,
   SPOTIFY_LIKED_SONGS_PLAYLIST_ID,
 } from "./services/spotify";
+import "./App.css";
 
 const YTM_HEADERS_UPLOAD_TOKEN_KEY = "pc_ytm_headers_upload_token";
 
@@ -22,12 +23,23 @@ const DIRECTION = {
   YOUTUBE_TO_SPOTIFY: "youtube-spotify",
 };
 
+function getInitialDirection() {
+  if (typeof window === "undefined") {
+    return DIRECTION.SPOTIFY_TO_YOUTUBE;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const host = params.get("host");
+  return host === "ytmusic"
+    ? DIRECTION.YOUTUBE_TO_SPOTIFY
+    : DIRECTION.SPOTIFY_TO_YOUTUBE;
+}
+
 function App() {
   const [isExtensionPanel] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("extension") === "1" || isRunningAsExtension();
   });
-  const [direction, setDirection] = useState(DIRECTION.SPOTIFY_TO_YOUTUBE);
+  const [direction, setDirection] = useState(getInitialDirection);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
   /** Integer from `/api/spotify/callback` when `user-library-read` is granted; else null. */
   const [spotifyLikedTotal, setSpotifyLikedTotal] = useState(null);
@@ -447,23 +459,29 @@ function App() {
     margin: "0 auto",
     boxSizing: "border-box",
   };
+  const shellClassName = `pc-app${isExtensionPanel ? " pc-app--extension" : ""}`;
 
   return (
-    <div style={shellStyle}>
-      <h1 style={{ marginTop: isExtensionPanel ? 0 : undefined }}>
-        Playlist converter
-      </h1>
-      <p style={{ color: "#444", marginTop: 0 }}>
-        Spotify ↔ YouTube Music (via YouTube playlists and Spotify search).
-        {isExtensionPanel && (
-          <>
-            {" "}
-            <strong>Extension panel</strong>
-          </>
-        )}
-      </p>
+    <div className={shellClassName} style={shellStyle}>
+      <header className="pc-hero">
+        <div className="pc-hero__icon" aria-hidden="true">
+          ↔
+        </div>
+        <div>
+          <p className="pc-eyebrow">
+            {isExtensionPanel ? "Web plugin" : "Playlist utility"}
+          </p>
+          <h1 style={{ marginTop: isExtensionPanel ? 0 : undefined }}>
+            Playlist converter
+          </h1>
+          <p style={{ color: "#444", marginTop: 0 }}>
+            Spotify ↔ YouTube Music (via YouTube playlists and Spotify search).
+          </p>
+        </div>
+      </header>
 
       <div
+        className="pc-card pc-direction-card"
         style={{
           marginBottom: "1.5rem",
           padding: "1rem",
@@ -503,6 +521,7 @@ function App() {
 
       {convertProgress ? (
         <div
+          className="pc-progress-card"
           style={{
             marginBottom: "1rem",
             padding: "1rem 1.1rem",
@@ -578,9 +597,13 @@ function App() {
           </p>
         </div>
       ) : (
-        loading && <p>Loading…</p>
+        loading && <p className="pc-loading">Loading…</p>
       )}
-      {message && <p>{message}</p>}
+      {message && (
+        <p className="pc-status" aria-live="polite">
+          {message}
+        </p>
+      )}
 
       {!authDone && spotifyPlaylists.length === 0 ? (
         <div style={{ marginTop: "0.5rem" }}>
