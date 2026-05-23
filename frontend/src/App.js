@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   startSpotifyAuth,
   handleSpotifyCallback,
@@ -113,6 +113,26 @@ function App() {
       setMessage(messageText);
     }
   };
+
+  const handleYoutubeAuthRequired = useCallback(async () => {
+    sessionStorage.setItem("pc_direction", direction);
+    try {
+      setLoading(true);
+      setMessage("Opening YouTube…");
+      if (!isRunningAsExtension()) {
+        await startYoutubeAuth();
+        return;
+      }
+      await startYoutubeAuth();
+      setMessage("YouTube connected.");
+      setYoutubeAuthReloadKey((k) => k + 1);
+      setYtPlaylistReloadKey((k) => k + 1);
+    } catch (err) {
+      setMessage(userFriendlyError(err, "YouTube login failed. Try again."));
+    } finally {
+      setLoading(false);
+    }
+  }, [direction]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -268,7 +288,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [authDone, direction, youtubeAuthReloadKey]);
+  }, [authDone, direction, handleYoutubeAuthRequired, youtubeAuthReloadKey]);
 
   useEffect(() => {
     if (!authDone || direction !== DIRECTION.YOUTUBE_TO_SPOTIFY) {
@@ -325,27 +345,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [authDone, direction, ytPlaylistReloadKey]);
-
-  const handleYoutubeAuthRequired = async () => {
-    sessionStorage.setItem("pc_direction", direction);
-    try {
-      setLoading(true);
-      setMessage("Opening YouTube…");
-      if (!isRunningAsExtension()) {
-        await startYoutubeAuth();
-        return;
-      }
-      await startYoutubeAuth();
-      setMessage("YouTube connected.");
-      setYoutubeAuthReloadKey((k) => k + 1);
-      setYtPlaylistReloadKey((k) => k + 1);
-    } catch (err) {
-      setMessage(userFriendlyError(err, "YouTube login failed. Try again."));
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [authDone, direction, handleYoutubeAuthRequired, ytPlaylistReloadKey]);
 
   const handleLogin = async () => {
     sessionStorage.setItem("pc_direction", direction);
