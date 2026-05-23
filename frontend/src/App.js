@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   startSpotifyAuth,
   handleSpotifyCallback,
+  fetchSpotifySession,
+  startYoutubeAuth,
+  handleYoutubeCallback,
   getStoredExtensionSpotifyAuth,
   isRunningAsExtension,
   convertPlaylist,
@@ -17,6 +20,7 @@ import {
 import "./App.css";
 
 const YTM_HEADERS_UPLOAD_TOKEN_KEY = "pc_ytm_headers_upload_token";
+const SPOTIFY_SESSION_CONNECTED_KEY = "pc_spotify_connected";
 
 const DIRECTION = {
   SPOTIFY_TO_YOUTUBE: "spotify-youtube",
@@ -93,11 +97,66 @@ function App() {
   const [ytmHeadersInlineMsg, setYtmHeadersInlineMsg] = useState("");
   const [ytmHeadersSaving, setYtmHeadersSaving] = useState(false);
   const [ytPlaylistReloadKey, setYtPlaylistReloadKey] = useState(0);
+  const [youtubeAuthReloadKey, setYoutubeAuthReloadKey] = useState(0);
   const capturePollRef = useRef(null);
+
+  const applySpotifySession = (data, messageText = "") => {
+    setSpotifyPlaylists(data.playlists || []);
+    setSpotifyLikedTotal(
+      typeof data.liked_songs_total === "number"
+        ? data.liked_songs_total
+        : null
+    );
+    setAuthDone(true);
+    sessionStorage.setItem(SPOTIFY_SESSION_CONNECTED_KEY, "1");
+    if (messageText) {
+      setMessage(messageText);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+    const state = params.get("state") || "";
+    const isYoutubeCallback =
+      window.location.pathname.includes("youtube-callback") ||
+      state.startsWith("youtube");
+
+    if (code && isYoutubeCallback) {
+      const cleanPath = `${window.location.pathname}${window.location.hash}` || "/";
+      window.history.replaceState({}, document.title, cleanPath);
+
+      const storedDir = sessionStorage.getItem("pc_direction");
+      if (
+        storedDir === DIRECTION.SPOTIFY_TO_YOUTUBE ||
+        storedDir === DIRECTION.YOUTUBE_TO_SPOTIFY
+      ) {
+        setDirection(storedDir);
+      }
+      setLoading(true);
+      handleYoutubeCallback(code)
+        .then(() => {
+          sessionStorage.setItem("pc_youtube_connected", "1");
+          setYoutubeAuthReloadKey((k) => k + 1);
+          setYtPlaylistReloadKey((k) => k + 1);
+          setMessage("YouTube connected.");
+          if (sessionStorage.getItem(SPOTIFY_SESSION_CONNECTED_KEY) === "1") {
+            return fetchSpotifySession()
+              .then((data) => applySpotifySession(data, "YouTube connected."))
+              .catch(() => null);
+          }
+          return null;
+        })
+        .catch((err) => {
+          console.error(err);
+          setMessage(userFriendlyError(err, "YouTube login failed. Try again."));
+        })
+        .finally(() => {
+          setLoading(false);
+          window.history.replaceState({}, document.title, "/");
+        });
+      return;
+    }
 
     if (code) {
       // OAuth codes are single-use. Strip ?code=… immediately so React Strict Mode's
@@ -116,14 +175,7 @@ function App() {
       setLoading(true);
       handleSpotifyCallback(code)
         .then((data) => {
-          setSpotifyPlaylists(data.playlists || []);
-          setSpotifyLikedTotal(
-            typeof data.liked_songs_total === "number"
-              ? data.liked_songs_total
-              : null
-          );
-          setAuthDone(true);
-          setMessage("Logged in with Spotify successfully.");
+          applySpotifySession(data, "Spotify connected.");
           window.history.replaceState({}, document.title, "/");
         })
         .catch((err) => {
@@ -139,6 +191,28 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (isRunningAsExtension()) {
+      return;
+    }
+    if (sessionStorage.getItem(SPOTIFY_SESSION_CONNECTED_KEY) !== "1") {
+      return;
+    }
+    let cancelled = false;
+    fetchSpotifySession()
+      .then((data) => {
+        if (!cancelled) {
+          applySpotifySession(data);
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem(SPOTIFY_SESSION_CONNECTED_KEY);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isRunningAsExtension()) {
       return;
     }
@@ -148,14 +222,7 @@ function App() {
         if (cancelled || !data?.playlists) {
           return;
         }
-        setSpotifyPlaylists(data.playlists || []);
-        setSpotifyLikedTotal(
-          typeof data.liked_songs_total === "number"
-            ? data.liked_songs_total
-            : null
-        );
-        setAuthDone(true);
-        setMessage("Connected to Spotify.");
+        applySpotifySession(data, "Connected to Spotify.");
       })
       .catch(() => {
         // No stored extension auth yet; the login button will start the tab-based flow.
@@ -188,6 +255,10 @@ function App() {
       .catch((err) => {
         console.error(err);
         if (!cancelled) {
+          if (err?.authRequired) {
+            handleYoutubeAuthRequired();
+            return;
+          }
           setYoutubeDestError(userFriendlyError(err, "Could not load YouTube playlists."));
         }
       })
@@ -197,7 +268,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [authDone, direction]);
+  }, [authDone, direction, youtubeAuthReloadKey]);
 
   useEffect(() => {
     if (!authDone || direction !== DIRECTION.YOUTUBE_TO_SPOTIFY) {
@@ -241,6 +312,10 @@ function App() {
       .catch((err) => {
         console.error(err);
         if (!cancelled) {
+          if (err?.authRequired) {
+            handleYoutubeAuthRequired();
+            return;
+          }
           setMessage(userFriendlyError(err, "Could not load YouTube Music."));
         }
       })
@@ -251,6 +326,26 @@ function App() {
       cancelled = true;
     };
   }, [authDone, direction, ytPlaylistReloadKey]);
+
+  const handleYoutubeAuthRequired = async () => {
+    sessionStorage.setItem("pc_direction", direction);
+    try {
+      setLoading(true);
+      setMessage("Opening YouTube…");
+      if (!isRunningAsExtension()) {
+        await startYoutubeAuth();
+        return;
+      }
+      await startYoutubeAuth();
+      setMessage("YouTube connected.");
+      setYoutubeAuthReloadKey((k) => k + 1);
+      setYtPlaylistReloadKey((k) => k + 1);
+    } catch (err) {
+      setMessage(userFriendlyError(err, "YouTube login failed. Try again."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     sessionStorage.setItem("pc_direction", direction);
@@ -263,14 +358,7 @@ function App() {
       setLoading(true);
       setMessage("Opening Spotify…");
       const data = await startSpotifyAuth();
-      setSpotifyPlaylists(data.playlists || []);
-      setSpotifyLikedTotal(
-        typeof data.liked_songs_total === "number"
-          ? data.liked_songs_total
-          : null
-      );
-      setAuthDone(true);
-      setMessage("Spotify connected.");
+      applySpotifySession(data, "Spotify connected.");
     } catch (err) {
       setMessage(
         err?.message
@@ -416,6 +504,10 @@ function App() {
       );
     } catch (err) {
       console.error(err);
+      if (err?.authRequired) {
+        handleYoutubeAuthRequired();
+        return;
+      }
       setMessage(
         userFriendlyError(err, `Could not convert "${playlist.name}".`)
       );
@@ -458,6 +550,10 @@ function App() {
       );
     } catch (err) {
       console.error(err);
+      if (err?.authRequired) {
+        handleYoutubeAuthRequired();
+        return;
+      }
       setMessage(userFriendlyError(err, `Could not convert "${playlist.name}".`));
     } finally {
       setLoading(false);

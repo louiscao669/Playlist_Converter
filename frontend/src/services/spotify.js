@@ -16,6 +16,14 @@ function rememberSpotifyAuth(data) {
   }
 }
 
+function buildApiError(body, fallback) {
+  const err = new Error(body?.error || fallback);
+  err.status = body?.status;
+  err.authRequired = Boolean(body?.auth_required);
+  err.authUrl = body?.auth_url || "";
+  return err;
+}
+
 function sendExtensionMessage(type, payload = {}) {
   return new Promise((resolve, reject) => {
     if (!isExtensionRuntime()) {
@@ -103,6 +111,8 @@ async function consumeNdjsonStream(res, onProgress) {
         const err = new Error(evt.error || "Request failed");
         err.details = evt.details;
         err.status = evt.status;
+        err.authRequired = Boolean(evt.auth_required);
+        err.authUrl = evt.auth_url || "";
         throw err;
       }
       if (evt.type === "complete") {
@@ -117,7 +127,7 @@ async function consumeNdjsonStream(res, onProgress) {
         onProgress(evt);
       }
       if (evt.type === "error") {
-        throw new Error(evt.error || "Request failed");
+        throw buildApiError(evt, "Request failed");
       }
       if (evt.type === "complete") {
         finalResult = evt.result;
@@ -169,11 +179,56 @@ export async function handleSpotifyCallback(authCode) {
   return data;
 }
 
+export async function fetchSpotifySession() {
+  const res = await fetch(`${API_BASE}/api/spotify/session`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw buildApiError(data, `Spotify session failed (${res.status})`);
+  }
+  rememberSpotifyAuth(data);
+  return data;
+}
+
+export async function startYoutubeAuth() {
+  if (isExtensionRuntime()) {
+    return sendExtensionMessage("PC_START_YOUTUBE_AUTH", { apiBase: API_BASE });
+  }
+
+  const res = await fetch(`${API_BASE}/api/youtube/auth`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.auth_url) {
+    throw buildApiError(data, `YouTube auth failed (${res.status})`);
+  }
+  window.location.href = data.auth_url;
+  return null;
+}
+
+export async function handleYoutubeCallback(authCode) {
+  const code =
+    typeof authCode === "string" && authCode
+      ? authCode
+      : new URLSearchParams(window.location.search).get("code");
+  if (!code) {
+    throw new Error("Missing YouTube authorization code.");
+  }
+
+  const res = await fetch(`${API_BASE}/api/youtube/callback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw buildApiError(data, `YouTube login failed (${res.status})`);
+  }
+  return data;
+}
+
 export async function fetchYoutubePlaylists() {
   const res = await fetch(`${API_BASE}/api/youtube/playlists`);
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to load YouTube playlists");
+    const body = await res.json().catch(() => ({}));
+    throw buildApiError(body, "Failed to load YouTube playlists");
   }
   return res.json();
 }
@@ -188,9 +243,7 @@ export async function fetchYtmusicPlaylists() {
     body = {};
   }
   if (!res.ok) {
-    throw new Error(
-      body.error || (await res.text()) || "Failed to load YouTube Music playlists"
-    );
+    throw buildApiError(body, "Failed to load YouTube Music playlists");
   }
   return body;
 }
@@ -303,7 +356,8 @@ export async function convertPlaylist(selectedPlaylist, onProgress, options = {}
       }),
     });
     if (!ytRes.ok) {
-      throw new Error(await ytRes.text());
+      const body = await ytRes.json().catch(() => ({}));
+      throw buildApiError(body, "Failed to create YouTube playlist");
     }
     const body = await ytRes.json();
     yt_playlist_id = body.yt_playlist_id;
@@ -351,7 +405,7 @@ export async function convertYoutubePlaylistToSpotify(selectedPlaylist, onProgre
     tracksBody = {};
   }
   if (!tracksRes.ok) {
-    throw new Error(tracksBody.error || "Failed to load tracks");
+    throw buildApiError(tracksBody, "Failed to load tracks");
   }
   const { tracks } = tracksBody;
 
