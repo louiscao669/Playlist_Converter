@@ -164,9 +164,9 @@
         <div class="brand-mark" aria-hidden="true">&harr;</div>
         <div class="brand-copy">
           <strong>Playlist Converter</strong>
-          <small>Spotify ↔ YouTube Music</small>
+          <small>Spotify &harr; YouTube Music</small>
         </div>
-        <button class="close" type="button" aria-label="Close Playlist Converter">×</button>
+        <button class="close" type="button" aria-label="Close Playlist Converter">&times;</button>
       </header>
       <iframe class="frame" title="Playlist Converter"></iframe>
     </section>
