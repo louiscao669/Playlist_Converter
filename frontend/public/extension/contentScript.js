@@ -4,7 +4,9 @@
   }
   window.__playlistConverterExtensionMounted = true;
 
-  const STORAGE_KEY = "playlist-converter-panel-open";
+  const OPEN_STORAGE_KEY = "playlist-converter-panel-open";
+  const LAUNCHER_POSITION_KEY = "playlist-converter-launcher-position";
+  const PANEL_SIZE_KEY = "playlist-converter-panel-size";
   const host = document.createElement("div");
   host.id = "playlist-converter-extension-root";
   document.documentElement.appendChild(host);
@@ -33,9 +35,15 @@
         font: 800 13px/1 Arial, sans-serif;
         letter-spacing: -0.01em;
         box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-        cursor: pointer;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
         transform: translateZ(0);
         transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+      }
+      .launcher.dragging {
+        cursor: grabbing;
+        transition: none;
       }
       .launcher:hover {
         filter: brightness(1.06);
@@ -72,6 +80,10 @@
         visibility: hidden;
         transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
         backdrop-filter: blur(18px);
+      }
+      .panel.resizing {
+        transition: none;
+        user-select: none;
       }
       .panel.open {
         opacity: 1;
@@ -145,6 +157,27 @@
         border: 0;
         background: #f8fafc;
       }
+      .resize-handle {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        z-index: 2;
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 0 14px 0 22px;
+        background:
+          linear-gradient(135deg, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0)),
+          radial-gradient(circle at 7px 21px, rgba(15, 23, 42, 0.35) 1.5px, transparent 2px),
+          radial-gradient(circle at 13px 21px, rgba(15, 23, 42, 0.35) 1.5px, transparent 2px),
+          radial-gradient(circle at 7px 15px, rgba(15, 23, 42, 0.35) 1.5px, transparent 2px);
+        cursor: nesw-resize;
+        opacity: 0.7;
+        touch-action: none;
+      }
+      .resize-handle:hover {
+        opacity: 1;
+      }
       @media (max-width: 520px) {
         .panel {
           inset: 12px;
@@ -169,6 +202,7 @@
         <button class="close" type="button" aria-label="Close Playlist Converter">&times;</button>
       </header>
       <iframe class="frame" title="Playlist Converter"></iframe>
+      <button class="resize-handle" type="button" aria-label="Resize Playlist Converter"></button>
     </section>
     <button class="launcher" type="button" aria-expanded="false">
       <span class="launcher-icon" aria-hidden="true">&harr;</span>
@@ -180,13 +214,31 @@
   const frame = shadow.querySelector(".frame");
   const launcher = shadow.querySelector(".launcher");
   const closeButton = shadow.querySelector(".close");
+  const resizeHandle = shadow.querySelector(".resize-handle");
 
   const hostName = location.hostname.includes("spotify") ? "spotify" : "ytmusic";
   frame.src = chrome.runtime.getURL(`index.html?extension=1&host=${hostName}`);
 
+  function readJson(key) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeJson(key, value) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (_) {
+      // Storage may be blocked; dragging/resizing still works for this page load.
+    }
+  }
+
   function readOpenState() {
     try {
-      return window.localStorage.getItem(STORAGE_KEY) === "1";
+      return window.localStorage.getItem(OPEN_STORAGE_KEY) === "1";
     } catch (_) {
       return false;
     }
@@ -194,10 +246,60 @@
 
   function writeOpenState(isOpen) {
     try {
-      window.localStorage.setItem(STORAGE_KEY, isOpen ? "1" : "0");
+      window.localStorage.setItem(OPEN_STORAGE_KEY, isOpen ? "1" : "0");
     } catch (_) {
       // Storage may be blocked; the panel can still toggle for this page load.
     }
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function getLauncherRectWithFallback() {
+    const rect = launcher.getBoundingClientRect();
+    return {
+      width: rect.width || 178,
+      height: rect.height || 46,
+    };
+  }
+
+  function applyLauncherPosition(pos) {
+    if (!pos || typeof pos.x !== "number" || typeof pos.y !== "number") {
+      return;
+    }
+    const rect = getLauncherRectWithFallback();
+    const margin = 8;
+    const x = clamp(pos.x, margin, window.innerWidth - rect.width - margin);
+    const y = clamp(pos.y, margin, window.innerHeight - rect.height - margin);
+    launcher.style.left = `${x}px`;
+    launcher.style.top = `${y}px`;
+    launcher.style.right = "auto";
+    launcher.style.bottom = "auto";
+  }
+
+  function persistLauncherPosition() {
+    const rect = launcher.getBoundingClientRect();
+    writeJson(LAUNCHER_POSITION_KEY, { x: rect.left, y: rect.top });
+  }
+
+  function applyPanelSize(size) {
+    const minWidth = 340;
+    const minHeight = 420;
+    const maxWidth = Math.max(minWidth, window.innerWidth - 36);
+    const maxHeight = Math.max(minHeight, window.innerHeight - 108);
+    const width = clamp(Number(size?.width) || 440, minWidth, maxWidth);
+    const height = clamp(Number(size?.height) || 740, minHeight, maxHeight);
+    panel.style.width = `${width}px`;
+    panel.style.height = `${height}px`;
+  }
+
+  function persistPanelSize() {
+    const rect = panel.getBoundingClientRect();
+    writeJson(PANEL_SIZE_KEY, {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    });
   }
 
   function setOpen(isOpen) {
@@ -210,7 +312,92 @@
   }
 
   launcher.addEventListener("click", () => {
+    if (launcher.dataset.dragged === "1") {
+      launcher.dataset.dragged = "0";
+      return;
+    }
     setOpen(!panel.classList.contains("open"));
+  });
+
+  launcher.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 && event.pointerType !== "touch") {
+      return;
+    }
+    const startRect = launcher.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let didDrag = false;
+
+    launcher.classList.add("dragging");
+    launcher.setPointerCapture?.(event.pointerId);
+
+    function onPointerMove(moveEvent) {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (!didDrag && Math.hypot(dx, dy) < 4) {
+        return;
+      }
+      didDrag = true;
+      moveEvent.preventDefault();
+      applyLauncherPosition({
+        x: startRect.left + dx,
+        y: startRect.top + dy,
+      });
+    }
+
+    function onPointerUp() {
+      launcher.classList.remove("dragging");
+      launcher.releasePointerCapture?.(event.pointerId);
+      launcher.removeEventListener("pointermove", onPointerMove);
+      launcher.removeEventListener("pointerup", onPointerUp);
+      launcher.removeEventListener("pointercancel", onPointerUp);
+      if (didDrag) {
+        launcher.dataset.dragged = "1";
+        persistLauncherPosition();
+      }
+    }
+
+    launcher.addEventListener("pointermove", onPointerMove);
+    launcher.addEventListener("pointerup", onPointerUp);
+    launcher.addEventListener("pointercancel", onPointerUp);
+  });
+
+  resizeHandle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 && event.pointerType !== "touch") {
+      return;
+    }
+    event.preventDefault();
+    const startRect = panel.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const minWidth = 340;
+    const minHeight = 420;
+    const maxWidth = Math.max(minWidth, window.innerWidth - 36);
+    const maxHeight = Math.max(minHeight, window.innerHeight - 108);
+
+    panel.classList.add("resizing");
+    resizeHandle.setPointerCapture?.(event.pointerId);
+
+    function onPointerMove(moveEvent) {
+      moveEvent.preventDefault();
+      const width = clamp(startRect.width - (moveEvent.clientX - startX), minWidth, maxWidth);
+      const height = clamp(startRect.height + (moveEvent.clientY - startY), minHeight, maxHeight);
+      panel.style.width = `${width}px`;
+      panel.style.height = `${height}px`;
+    }
+
+    function onPointerUp() {
+      panel.classList.remove("resizing");
+      resizeHandle.releasePointerCapture?.(event.pointerId);
+      resizeHandle.removeEventListener("pointermove", onPointerMove);
+      resizeHandle.removeEventListener("pointerup", onPointerUp);
+      resizeHandle.removeEventListener("pointercancel", onPointerUp);
+      persistPanelSize();
+    }
+
+    resizeHandle.addEventListener("pointermove", onPointerMove);
+    resizeHandle.addEventListener("pointerup", onPointerUp);
+    resizeHandle.addEventListener("pointercancel", onPointerUp);
   });
 
   closeButton.addEventListener("click", () => {
@@ -223,5 +410,11 @@
     }
   });
 
+  applyPanelSize(readJson(PANEL_SIZE_KEY));
+  applyLauncherPosition(readJson(LAUNCHER_POSITION_KEY));
+  window.addEventListener("resize", () => {
+    applyPanelSize(readJson(PANEL_SIZE_KEY));
+    applyLauncherPosition(readJson(LAUNCHER_POSITION_KEY));
+  });
   setOpen(readOpenState());
 })();
