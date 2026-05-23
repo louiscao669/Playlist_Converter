@@ -34,6 +34,30 @@ function getInitialDirection() {
     : DIRECTION.SPOTIFY_TO_YOUTUBE;
 }
 
+function userFriendlyError(err, fallback = "Something went wrong. Try again.") {
+  const raw = String(err?.message || err || "").toLowerCase();
+  if (raw.includes("failed to fetch")) {
+    return "Could not reach the server. Try again.";
+  }
+  if (raw.includes("redirect") || raw.includes("token exchange")) {
+    return "Spotify login setup needs attention.";
+  }
+  if (
+    raw.includes("spotify") &&
+    (raw.includes("401") || raw.includes("403") || raw.includes("token"))
+  ) {
+    return "Spotify session expired. Reconnect Spotify.";
+  }
+  if (
+    raw.includes("youtube") ||
+    raw.includes("ytmusic") ||
+    raw.includes("oauth")
+  ) {
+    return "Could not load YouTube. Reconnect and try again.";
+  }
+  return fallback;
+}
+
 function App() {
   const [isExtensionPanel] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -106,8 +130,8 @@ function App() {
           console.error(err);
           setMessage(
             err?.message
-              ? `Spotify login failed: ${err.message}`
-              : "Failed to complete Spotify login."
+            ? userFriendlyError(err, "Spotify login failed. Try again.")
+            : "Spotify login failed. Try again."
           );
         })
         .finally(() => setLoading(false));
@@ -164,10 +188,7 @@ function App() {
       .catch((err) => {
         console.error(err);
         if (!cancelled) {
-          setYoutubeDestError(
-            err?.message ||
-              "Could not load your YouTube playlists (Google OAuth on the API server may be missing)."
-          );
+          setYoutubeDestError(userFriendlyError(err, "Could not load YouTube playlists."));
         }
       })
       .finally(() => {
@@ -209,21 +230,18 @@ function App() {
         if (!cancelled) {
           setYoutubePlaylists(data.playlists || []);
           setMessage(
-            data.warning ||
-              (data.playlists?.length
-                ? data.source === "youtube_data_api"
-                  ? "Loaded playlists via YouTube Data API (ytmusicapi failed — see message above)."
-                  : "Loaded your YouTube Music playlists (ytmusicapi)."
-                : "No playlists found in your YouTube Music library.")
+            data.playlists?.length
+              ? data.source === "youtube_data_api"
+                ? "Loaded YouTube playlists."
+                : "Loaded YouTube Music playlists."
+              : "No YouTube Music playlists found."
           );
         }
       })
       .catch((err) => {
         console.error(err);
         if (!cancelled) {
-          setMessage(
-            `Could not load YouTube Music playlists. ${err.message || ""} OAuth often hits HTTP 400 upstream (see ytmusicapi #813). Try \`ytmusicapi browser\` and set YTMUSIC_BROWSER_HEADERS_JSON, or fix oauth.json + TV client in .env.`
-          );
+          setMessage(userFriendlyError(err, "Could not load YouTube Music."));
         }
       })
       .finally(() => {
@@ -243,7 +261,7 @@ function App() {
 
     try {
       setLoading(true);
-      setMessage("Opening Spotify login in a new tab…");
+      setMessage("Opening Spotify…");
       const data = await startSpotifyAuth();
       setSpotifyPlaylists(data.playlists || []);
       setSpotifyLikedTotal(
@@ -252,12 +270,12 @@ function App() {
           : null
       );
       setAuthDone(true);
-      setMessage("Logged in with Spotify successfully.");
+      setMessage("Spotify connected.");
     } catch (err) {
       setMessage(
         err?.message
-          ? `Spotify login failed: ${err.message}`
-          : "Failed to complete Spotify login."
+          ? userFriendlyError(err, "Spotify login failed. Try again.")
+          : "Spotify login failed. Try again."
       );
     } finally {
       setLoading(false);
@@ -269,16 +287,15 @@ function App() {
     try {
       setYtmHeadersSaving(true);
       sessionStorage.setItem(YTM_HEADERS_UPLOAD_TOKEN_KEY, ytmHeadersUploadToken);
-      const out = await saveYtmusicBrowserHeadersJson({
+      await saveYtmusicBrowserHeadersJson({
         jsonText: ytmHeadersJsonText,
         uploadToken: ytmHeadersUploadToken,
       });
-      const tail = out.note ? ` ${out.note}` : "";
-      setYtmHeadersInlineMsg(`Saved to ${out.saved_to}.${tail}`);
+      setYtmHeadersInlineMsg("Session saved.");
       setYtPlaylistReloadKey((k) => k + 1);
       setYtmHeadersJsonText("");
     } catch (e) {
-      setYtmHeadersInlineMsg(e?.message || "Save failed.");
+      setYtmHeadersInlineMsg(userFriendlyError(e, "Could not save session."));
     } finally {
       setYtmHeadersSaving(false);
     }
@@ -305,21 +322,20 @@ function App() {
         throw new Error("Server did not return job_id.");
       }
       setYtmHeadersInlineMsg(
-        "Chromium should open on the computer running Flask — sign in to YouTube Music there."
+        "Browser opened. Sign in to YouTube Music."
       );
       capturePollRef.current = setInterval(async () => {
         try {
           const st = await getYtmusicCaptureStatus(jobId);
           if (st.message) {
-            setYtmHeadersInlineMsg(st.message);
+            setYtmHeadersInlineMsg("Waiting for YouTube Music sign-in…");
           }
           if (st.status === "done") {
             if (capturePollRef.current) {
               clearInterval(capturePollRef.current);
               capturePollRef.current = null;
             }
-            const n = st.note ? ` ${st.note}` : "";
-            setYtmHeadersInlineMsg(`Captured and saved to ${st.saved_to || "file"}.${n}`);
+            setYtmHeadersInlineMsg("YouTube Music session saved.");
             setYtPlaylistReloadKey((k) => k + 1);
             setYtmHeadersSaving(false);
           } else if (st.status === "failed") {
@@ -327,7 +343,7 @@ function App() {
               clearInterval(capturePollRef.current);
               capturePollRef.current = null;
             }
-            setYtmHeadersInlineMsg(st.error || "Capture failed.");
+            setYtmHeadersInlineMsg(userFriendlyError(st.error, "Session capture failed."));
             setYtmHeadersSaving(false);
           }
         } catch (e) {
@@ -335,25 +351,25 @@ function App() {
             clearInterval(capturePollRef.current);
             capturePollRef.current = null;
           }
-          setYtmHeadersInlineMsg(e?.message || "Status poll failed.");
+          setYtmHeadersInlineMsg(userFriendlyError(e, "Could not check session status."));
           setYtmHeadersSaving(false);
         }
       }, 1500);
     } catch (e) {
-      setYtmHeadersInlineMsg(e?.message || "Could not start capture.");
+      setYtmHeadersInlineMsg(userFriendlyError(e, "Could not start session capture."));
       setYtmHeadersSaving(false);
     }
   };
 
   const spotifyLoginButtonLabel =
     direction === DIRECTION.YOUTUBE_TO_SPOTIFY
-      ? "Log in with Spotify · import from YouTube Music"
-      : "Log in with Spotify · export to YouTube";
+      ? "Connect Spotify"
+      : "Connect Spotify";
 
   const spotifyLoginHint =
     direction === DIRECTION.YOUTUBE_TO_SPOTIFY
-      ? "After Spotify login we load your YouTube Music library so you can create Spotify playlists from it."
-      : "After Spotify login we list your playlists and Liked songs so you can copy them to YouTube.";
+      ? "Connect Spotify to create playlists from YouTube Music."
+      : "Connect Spotify to choose playlists to copy.";
 
   const spotifyExportRows = React.useMemo(() => {
     if (direction !== DIRECTION.SPOTIFY_TO_YOUTUBE) {
@@ -395,15 +411,13 @@ function App() {
       );
       setMessage(
         appendYt
-          ? `Added tracks from "${playlist.name}" to your selected YouTube playlist.`
-          : `Converted "${playlist.name}" to a new YouTube playlist.`
+          ? `Added "${playlist.name}" to YouTube.`
+          : `Created a YouTube copy of "${playlist.name}".`
       );
     } catch (err) {
       console.error(err);
       setMessage(
-        err?.message
-          ? `Failed to convert "${playlist.name}": ${err.message}`
-          : `Failed to convert "${playlist.name}".`
+        userFriendlyError(err, `Could not convert "${playlist.name}".`)
       );
     } finally {
       setLoading(false);
@@ -439,13 +453,12 @@ function App() {
       )?.name;
       setMessage(
         appendSp
-          ? `Added ${matched}/${total} matched tracks from "${playlist.name}" to "${targetName || "your playlist"}".`
-          : `Created Spotify playlist from "${playlist.name}" (${matched}/${total} tracks matched).`
+          ? `Added ${matched}/${total} tracks to "${targetName || "Spotify"}".`
+          : `Created Spotify playlist (${matched}/${total} tracks).`
       );
     } catch (err) {
       console.error(err);
-      const detail = err?.message ? ` ${err.message}` : "";
-      setMessage(`Failed to convert "${playlist.name}".${detail}`);
+      setMessage(userFriendlyError(err, `Could not convert "${playlist.name}".`));
     } finally {
       setLoading(false);
       setConvertProgress(null);
@@ -512,9 +525,7 @@ function App() {
         </label>
         {authDone && (
           <p style={{ fontSize: "13px", color: "#666", marginBottom: 0 }}>
-            You can switch anytime. YouTube → Spotify still needs Spotify
-            login (to create playlists) and Google/YouTube auth on the machine
-            running the API.
+            You can switch anytime. Reconnect if a session expires.
           </p>
         )}
       </div>
@@ -730,9 +741,8 @@ function App() {
               lineHeight: 1.45,
             }}
           >
-            <strong>Liked songs</strong> is read straight from your Spotify library (no need to
-            select tracks in the Spotify app). If conversion is denied, connect Spotify again once
-            so the app can request library access.
+            <strong>Liked songs</strong> comes from your Spotify library. If it fails,
+            reconnect Spotify and allow library access.
           </p>
           <ul style={{ listStyle: "none", padding: 0 }}>
             {spotifyExportRows.map((p) => (
@@ -864,16 +874,13 @@ function App() {
                 color: "#78350f",
               }}
             >
-              {ytmHeadersPanelOpen ? "▼" : "▶"} Renew YouTube Music browser headers (when cookies expire)
+              {ytmHeadersPanelOpen ? "▼" : "▶"} Renew YouTube Music session
             </button>
             {ytmHeadersPanelOpen && (
               <div style={{ marginTop: "0.75rem" }}>
                 {!ytmHeadersUploadEnabled ? (
                   <p style={{ fontSize: "13px", color: "#92400e", marginBottom: 0 }}>
-                    Server upload is off. Add{" "}
-                    <code>YTMUSIC_HEADERS_UPLOAD_SECRET</code> to your Flask <code>.env</code>{" "}
-                    (any long random string), restart the API, then enter the same value below as
-                    the upload token.
+                    Session renewal is not enabled on this server.
                   </p>
                 ) : (
                   <>
@@ -886,14 +893,14 @@ function App() {
                         marginBottom: "0.35rem",
                       }}
                     >
-                      Upload token (matches <code>YTMUSIC_HEADERS_UPLOAD_SECRET</code> on the server)
+                      Upload token
                     </label>
                     <input
                       type="password"
                       autoComplete="off"
                       value={ytmHeadersUploadToken}
                       onChange={(e) => setYtmHeadersUploadToken(e.target.value)}
-                      placeholder="Paste server secret once"
+                      placeholder="Paste upload token"
                       style={{
                         width: "100%",
                         maxWidth: "420px",
@@ -914,9 +921,7 @@ function App() {
                             lineHeight: 1.45,
                           }}
                         >
-                          <strong>Chromium on the Flask computer</strong> (needs a screen): enter the
-                          upload token above, then start capture. A browser window opens on the server;
-                          log into YouTube Music there — cookies are saved when sign-in is detected.
+                          Sign in to YouTube Music in the browser that opens.
                         </p>
                         <button
                           type="button"
@@ -934,7 +939,7 @@ function App() {
                         >
                           {ytmHeadersSaving
                             ? "Capture running…"
-                            : "Log in with Chromium on server (auto-save headers)"}
+                            : "Renew YouTube Music session"}
                         </button>
                       </div>
                     ) : (
@@ -946,9 +951,7 @@ function App() {
                           lineHeight: 1.4,
                         }}
                       >
-                        Playwright is not available on the API host. Install with:{" "}
-                        <code>pip install playwright</code> then <code>playwright install chromium</code>
-                        , restart Flask, then reload this page.
+                        Automatic renewal is unavailable on this server.
                       </p>
                     )}
                     <label
@@ -962,14 +965,14 @@ function App() {
                     >
                       {ytmPlaywrightAvailable ? (
                         <>
-                          Manual upload — <code>ytmusicapi browser</code> JSON{" "}
+                          Manual session JSON{" "}
                           <span style={{ fontWeight: 400, color: "#57534e" }}>
-                            (skip this if Chromium capture above succeeded)
+                            (optional)
                           </span>
                         </>
                       ) : (
                         <>
-                          Headers JSON (from <code>ytmusicapi browser</code>)
+                          Session JSON
                         </>
                       )}
                     </label>
@@ -982,8 +985,7 @@ function App() {
                           lineHeight: 1.35,
                         }}
                       >
-                        This box is an alternative: use it only when you are not using the green
-                        &quot;Chromium&quot; button, or when Playwright is unavailable.
+                        Use this only if automatic renewal does not work.
                       </p>
                     )}
                     <textarea
@@ -1020,7 +1022,7 @@ function App() {
                             : "pointer",
                       }}
                     >
-                      {ytmHeadersSaving ? "Saving…" : "Save headers on server"}
+                      {ytmHeadersSaving ? "Saving…" : "Save session"}
                     </button>
                     {ytmHeadersInlineMsg && (
                       <p
@@ -1040,11 +1042,7 @@ function App() {
           </div>
           <h2>Your YouTube Music playlists</h2>
           <p style={{ fontSize: "14px", color: "#555" }}>
-            With <strong>browser headers</strong> (<code>YTMUSIC_BROWSER_HEADERS_JSON</code>), use
-            the panel above when cookies expire. Otherwise this app uses{" "}
-            <code>backend/oauth.json</code> plus <code>YTMUSIC_CLIENT_ID</code> /{" "}
-            <code>YTMUSIC_CLIENT_SECRET</code> in <code>.env</code>. Spotify → YouTube uses the
-            Google Data API and <code>backend/token.pickle</code>.
+            If playlists stop loading, renew your YouTube Music session above.
           </p>
           <ul style={{ listStyle: "none", padding: 0 }}>
             {youtubePlaylists.map((p) => (

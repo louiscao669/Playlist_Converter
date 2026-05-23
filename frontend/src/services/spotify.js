@@ -266,7 +266,6 @@ export async function convertPlaylist(selectedPlaylist, onProgress, options = {}
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      access_token: localStorage.getItem("spotify_token") || undefined,
       playlist_id: selectedPlaylist.id,
     }),
   });
@@ -367,7 +366,6 @@ export async function convertYoutubePlaylistToSpotify(selectedPlaylist, onProgre
       title: `Converted — ${selectedPlaylist.name}`,
       description: "Imported from YouTube Music",
       tracks,
-      access_token: localStorage.getItem("spotify_token") || undefined,
       ...(existingSp ? { spotify_playlist_id: existingSp } : {}),
     }),
   });
